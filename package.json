@@ -1,0 +1,14 @@
+{
+  "name": "visiondesk-roboflow-detect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Real-time object detection web app (webcam + upload) using Roboflow Workflow API, deployed on Vercel.",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "test": "node test/detect.test.js",
+    "deploy": "vercel --prod"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

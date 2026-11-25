@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#07090d" />
+  <title>VisionDesk — Benda Meja Object Detection</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="3" y="3" width="26" height="26" rx="4" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="6 4"/>
+        <circle cx="16" cy="16" r="5" fill="currentColor"/>
+      </svg>
+      <div>
+        <h1>VisionDesk</h1>
+        <p class="subtitle">Benda Meja · Kelompok 10 · Roboflow Workflow</p>
+      </div>
+    </div>
+    <div class="status" id="status" data-state="booting" role="status" aria-live="polite">
+      <span class="status-dot"></span>
+      <span class="status-text" id="statusText">INITIALIZING</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="viewport-card">
+      <div class="viewport-head">
+        <div class="tabs" role="tablist">
+          <button class="tab active" role="tab" data-mode="camera" aria-selected="true">Webcam</button>
+          <button class="tab" role="tab" data-mode="upload" aria-selected="false">Upload Image</button>
+        </div>
+        <div class="viewport-meta mono" id="viewportMeta">— × —</div>
+      </div>
+
+      <div class="viewport" id="viewport">
+        <video id="video" playsinline muted autoplay hidden></video>
+        <img id="preview" alt="Gambar yang diunggah" hidden />
+        <canvas id="overlay"></canvas>
+
+        <div class="empty" id="emptyState">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 14V8a2 2 0 0 1 2-2h6M34 6h6a2 2 0 0 1 2 2v6M42 34v6a2 2 0 0 1-2 2h-6M14 42H8a2 2 0 0 1-2-2v-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="24" r="6" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+          <p id="emptyTitle">Kamera belum aktif</p>
+          <span id="emptyHint">Tekan <b>Start Camera</b> untuk deteksi real-time, atau pilih tab Upload Image.</span>
+        </div>
+
+        <div class="scanline" id="scanline" hidden></div>
+        <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+        <div class="toast" id="toast" hidden></div>
+      </div>
+
+      <div class="controls" id="cameraControls">
+        <button class="btn primary" id="startBtn">
+          <svg viewBox="0 0 24 24"><path d="M5 3l14 9-14 9V3z"/></svg>Start Camera
+        </button>
+        <button class="btn danger" id="stopBtn" disabled>
+          <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>Stop Camera
+        </button>
+        <label class="field">
+          <span>Interval</span>
+          <select id="intervalSelect">
+            <option value="500">0.5 s</option>
+            <option value="1000" selected>1 s</option>
+            <option value="2000">2 s</option>
+            <option value="3000">3 s</option>
+          </select>
+        </label>
+        <label class="field" id="cameraSelectWrap" hidden>
+          <span>Kamera</span>
+          <select id="cameraSelect"></select>
+        </label>
+      </div>
+
+      <div class="controls" id="uploadControls" hidden>
+        <label class="btn ghost" for="fileInput">
+          <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload Image
+        </label>
+        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/bmp" hidden />
+        <button class="btn primary" id="detectBtn" disabled>
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Detect
+        </button>
+        <span class="file-name mono" id="fileName">Belum ada file</span>
+      </div>
+
+      <div class="threshold">
+        <label for="confSlider">Confidence threshold</label>
+        <input type="range" id="confSlider" min="0" max="95" step="5" value="40" />
+        <output id="confValue" class="mono">40%</output>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <h2>Statistics</h2>
+        <div class="stats">
+          <div class="stat"><span class="stat-label">Objects</span><span class="stat-value mono" id="statCount">0</span></div>
+          <div class="stat"><span class="stat-label">Avg confidence</span><span class="stat-value mono" id="statConf">—</span></div>
+          <div class="stat"><span class="stat-label">Processing</span><span class="stat-value mono" id="statTime">—</span></div>
+          <div class="stat"><span class="stat-label">Inferences</span><span class="stat-value mono" id="statRuns">0</span></div>
+        </div>
+        <div class="classbar" id="classBar"></div>
+        <div class="class-legend" id="classLegend"></div>
+      </section>
+
+      <section class="panel grow">
+        <div class="panel-head">
+          <h2>Detection Results</h2>
+          <span class="badge mono" id="resultBadge">0</span>
+        </div>
+        <ul class="results" id="results">
+          <li class="results-empty">Belum ada deteksi.</li>
+        </ul>
+      </section>
+
+      <section class="panel log-panel">
+        <h2>System Log</h2>
+        <ol class="log mono" id="log"></ol>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="foot mono">
+    API key disimpan di server (Vercel env) · Inference via <span>/api/detect</span>
+  </footer>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
